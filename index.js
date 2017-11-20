@@ -4,6 +4,14 @@ const _ = require('lodash');
 const root = '../wikiart/wikiart/meta/';
 const files = fs.readdirSync(root);
 
+const colorData = 
+  _.fromPairs(
+    fs.readFileSync('../log.txt', 'utf-8').split("\n").map(
+      (line) => line.split(',')
+    )
+  );
+  //console.log(JSON.stringify(colorData, null, 2));
+
 function addYear(solrReady, prefix) {
   const year = solrReady[prefix + '_s'].split(' ').filter(
     (x) => x.match(/^\d\d\d\d$/)
@@ -48,7 +56,9 @@ files.filter(
     const text = fs.readFileSync(root + file);
     const data = JSON.parse(text);
 
-    data.map(
+    data.filter(
+      (work) => !!work.contentId
+    ).map(
       (work) => {
         const noNulls = _.omitBy(work, _.isEmpty);
         const solrReady = _.mapKeys(noNulls, featureDetect);
@@ -72,6 +82,12 @@ files.filter(
           const year = solrReady['yearAsString_s'] + '';
           solrReady['yearDecade_s'] = year.substring(0,3) + '0s';
           solrReady['yearCentury_s'] = year.substring(0,2) + '00s';      
+        }
+
+        const image = (work.contentId) + '.jpg';
+        
+        if (colorData[image]) {
+          solrReady['colors_ss'] = colorData[image];
         }
 
         batch.push(solrReady);
